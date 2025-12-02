@@ -1,5 +1,7 @@
 # kiro-blast
 
+🎮 **play now:** https://fbarrios.github.io/kiro-blast
+
 a bomberman-style retro game built during the aws re:invent 2025 workshop
 
 ## about
@@ -24,17 +26,6 @@ during aws re:invent 2025 in las vegas
 - multiple lives system
 - score tracking
 
-## running the game
-
-simply open `game.html` in your web browser to start playing!
-
-## deploying to github pages
-
-1. push your code to github
-2. go to repository settings → pages
-3. select your branch (main) and root folder (/)
-4. save and wait a few minutes
-5. access your game at: `https://[your-username].github.io/[repository-name]/game.html`
 
 ---
 

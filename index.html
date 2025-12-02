@@ -3,46 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blast-Kiro</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #0a0a0a;
-            font-family: 'Courier New', monospace;
-            color: white;
-        }
-        #gameContainer {
-            text-align: center;
-        }
-        canvas {
-            border: 3px solid #790ECB;
-            background-color: #1a1a1a;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-        }
-        #ui {
-            margin-top: 20px;
-            font-size: 20px;
-            color: #790ECB;
-        }
-        #score, #lives {
-            display: inline-block;
-            margin: 0 20px;
-        }
-    </style>
+    <title>kiro-blast</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="520" height="440"></canvas>
-        <div id="ui">
-            <span id="score">Score: 0</span>
-            <span id="lives">Lives: 3</span>
+    <div class="game-container">
+        <div class="header">
+            <h1>kiro-blast</h1>
+            <div class="stats">
+                <div class="stat">score: <span id="score">0</span></div>
+                <div class="stat">lives: <span id="lives">3</span></div>
+                <div class="stat">enemies: <span id="enemies">6</span></div>
+            </div>
         </div>
+        <div class="instructions">use kiro's power to vibe through the levels in this bomberman-style retro game.</div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="message" class="message"></div>
+        <div class="workshop-credit">built using kiro during re:invent 2025</div>
     </div>
     <script src="game.js"></script>
 </body>
