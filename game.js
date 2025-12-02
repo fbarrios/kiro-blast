@@ -11,7 +11,7 @@ const CONFIG = {
     MAX_VIBES: 1,
     STARTING_LIVES: 3,
     DESTRUCTIBLE_BLOCK_PERCENTAGE: 0.25,
-    DEATH_PAUSE_DURATION: 1000,
+    DEATH_PAUSE_DURATION: 2000,
     ENEMY_COUNT: 6,
     SCORE: {
         BRICK: 10,
@@ -88,7 +88,7 @@ function init() {
     document.addEventListener('keyup', handleKeyUp);
     
     createOriginalArena();
-    showMessage('Arrow keys to move, Spacebar to place vibe!<br>Press any arrow key to start');
+    showMessage('arrow keys to move, spacebar to place vibe!<br>press any arrow key to start');
 }
 
 function startGame() {
@@ -154,11 +154,24 @@ function createOriginalArena() {
     originalArena[1][2] = TILE_TYPES.EMPTY;
     originalArena[2][1] = TILE_TYPES.EMPTY;
     
+    // Collect enemy spawn positions to avoid placing blocks there
+    const enemySpawnPositions = [
+        {x: 11, y: 1}, {x: 11, y: 9}, {x: 1, y: 9},
+        {x: 6, y: 1}, {x: 6, y: 9}, {x: 11, y: 5}
+    ];
+    
     // Add destructible blocks
     const emptyTiles = [];
     for (let y = 1; y < CONFIG.GRID_HEIGHT - 1; y++) {
         for (let x = 1; x < CONFIG.GRID_WIDTH - 1; x++) {
-            if (originalArena[y][x] === TILE_TYPES.EMPTY && !(x <= 2 && y <= 2)) {
+            // Skip player spawn area
+            if (x <= 2 && y <= 2) continue;
+            
+            // Skip enemy spawn positions
+            const isEnemySpawn = enemySpawnPositions.some(pos => pos.x === x && pos.y === y);
+            if (isEnemySpawn) continue;
+            
+            if (originalArena[y][x] === TILE_TYPES.EMPTY) {
                 emptyTiles.push({x, y});
             }
         }
@@ -197,9 +210,10 @@ function handleKeyDown(e) {
         gameState = GAME_STATES.PLAYING;
         resetLevel();
         showMessage('');
+        hideInstructions();
     }
     
-    if (gameState === GAME_STATES.GAME_OVER && e.key === 'Enter') {
+    if (gameState === GAME_STATES.GAME_OVER && (e.key === 'Enter' || e.key === ' ')) {
         // Full restart from beginning
         score = 0;
         lives = CONFIG.STARTING_LIVES;
@@ -207,9 +221,10 @@ function handleKeyDown(e) {
         resetLevel();
         updateUI();
         showMessage('');
+        hideInstructions();
     }
     
-    if (gameState === GAME_STATES.LEVEL_COMPLETE && e.key === 'Enter') {
+    if (gameState === GAME_STATES.LEVEL_COMPLETE && (e.key === 'Enter' || e.key === ' ')) {
         // Continue to next level (keeping score and lives)
         gameState = GAME_STATES.PLAYING;
         resetLevel();
@@ -248,22 +263,29 @@ function update() {
 }
 
 function updatePlayer() {
-    player.moveTimer++;
+    // Check for movement input immediately
+    let newX = player.x;
+    let newY = player.y;
+    let wantsToMove = false;
     
-    if (player.moveTimer >= CONFIG.PLAYER_MOVE_FRAMES) {
-        let newX = player.x;
-        let newY = player.y;
+    if (keys['ArrowUp']) { newY--; wantsToMove = true; }
+    if (keys['ArrowDown']) { newY++; wantsToMove = true; }
+    if (keys['ArrowLeft']) { newX--; wantsToMove = true; }
+    if (keys['ArrowRight']) { newX++; wantsToMove = true; }
+    
+    if (wantsToMove) {
+        player.moveTimer++;
         
-        if (keys['ArrowUp']) newY--;
-        if (keys['ArrowDown']) newY++;
-        if (keys['ArrowLeft']) newX--;
-        if (keys['ArrowRight']) newX++;
-        
-        if (canMove(newX, newY, player.x, player.y)) {
-            player.x = newX;
-            player.y = newY;
-            player.moveTimer = 0;
+        if (player.moveTimer >= CONFIG.PLAYER_MOVE_FRAMES) {
+            if (canMove(newX, newY, player.x, player.y)) {
+                player.x = newX;
+                player.y = newY;
+                player.moveTimer = 0;
+            }
         }
+    } else {
+        // Reset timer when not moving for more responsive input
+        player.moveTimer = CONFIG.PLAYER_MOVE_FRAMES;
     }
     
     // Place vibe
@@ -430,18 +452,22 @@ function checkCollisions() {
 
 function startDeathPause() {
     deathPauseStart = Date.now();
-    showMessage('💀 OUCH! 💀');
+    showMessage(''); // Clear bottom message
 }
 
 function playerDie() {
     lives = Math.max(0, lives - 1);
     updateUI();
     
+    // Always start death pause to show "ouch" animation
+    startDeathPause();
+    
     if (lives === 0) {
-        gameState = GAME_STATES.GAME_OVER;
-        showMessage('GAME OVER!<br>Press Enter to restart');
-    } else {
-        startDeathPause();
+        // Delay game over message until after death animation
+        setTimeout(() => {
+            gameState = GAME_STATES.GAME_OVER;
+            showMessage('game over!<br>press space or enter to restart');
+        }, CONFIG.DEATH_PAUSE_DURATION);
     }
 }
 
@@ -449,7 +475,7 @@ function levelComplete() {
     score += CONFIG.SCORE.LEVEL_COMPLETE;
     updateUI();
     gameState = GAME_STATES.LEVEL_COMPLETE;
-    showMessage('LEVEL COMPLETE!<br>Press Enter to continue');
+    showMessage('level complete!<br>press space or enter to continue');
 }
 
 // ===== RENDERING =====
@@ -460,8 +486,29 @@ function render() {
     renderArena();
     renderVibes();
     renderExplosions();
-    renderPlayer();
-    renderEnemies();
+    
+    // Show sprites even before game starts
+    if (gameState === GAME_STATES.START) {
+        // Render player at starting position
+        ctx.drawImage(playerImage, 1 * CONFIG.TILE_SIZE, 1 * CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+        
+        // Render enemies at their spawn positions
+        const spawnPositions = [
+            {x: 11, y: 1}, {x: 11, y: 9}, {x: 1, y: 9},
+            {x: 6, y: 1}, {x: 6, y: 9}, {x: 11, y: 5}
+        ];
+        spawnPositions.forEach(pos => {
+            ctx.drawImage(enemyImage, pos.x * CONFIG.TILE_SIZE, pos.y * CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+        });
+    } else {
+        renderPlayer();
+        renderEnemies();
+    }
+    
+    // Render death message on canvas during death pause
+    if (deathPauseStart !== null) {
+        renderDeathMessage();
+    }
 }
 
 function renderArena() {
@@ -533,11 +580,36 @@ function renderExplosions() {
 function updateUI() {
     document.getElementById('score').textContent = score;
     document.getElementById('lives').textContent = lives;
-    document.getElementById('enemies').textContent = enemies.length;
+    document.getElementById('enemies').textContent = gameState === GAME_STATES.START ? CONFIG.ENEMY_COUNT : enemies.length;
 }
 
 function showMessage(msg) {
     document.getElementById('message').innerHTML = msg;
+}
+
+function hideInstructions() {
+    const instructions = document.querySelector('.instructions');
+    if (instructions) {
+        instructions.style.visibility = 'hidden';
+    }
+}
+
+function renderDeathMessage() {
+    if (deathPauseStart === null) return;
+    
+    const deathTexts = ['💀 ouch! 💀', '~ouch~', '*OUCH*', '≈ouch≈'];
+    const elapsed = Date.now() - deathPauseStart;
+    const textIndex = Math.floor(elapsed / 250) % deathTexts.length;
+    
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const x = player.x * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+    const y = player.y * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+    
+    ctx.fillText(deathTexts[textIndex], x, y);
 }
 
 // ===== GAME LOOP =====
