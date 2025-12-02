@@ -44,9 +44,8 @@ h1 {
     color: #a0a0a0;
 }
 
-.stat span {
+.stat .stat-value {
     color: white;
-    font-weight: bold;
 }
 
 #gameCanvas {
@@ -77,8 +76,8 @@ h1 {
     bottom: 20px;
     right: 20px;
     font-size: 0.85rem;
-    color: #790ECB;
-    opacity: 0.7;
+    color: #9B59B6;
+    opacity: 0.9;
 }
 
 @keyframes pulse {

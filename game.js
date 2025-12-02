@@ -88,7 +88,7 @@ function init() {
     document.addEventListener('keyup', handleKeyUp);
     
     createOriginalArena();
-    showMessage('arrow keys to move, spacebar to place vibe!<br>press any arrow key to start');
+    showMessage('arrow keys to move, spacebar to vibe<br>press any arrow key to start');
 }
 
 function startGame() {
