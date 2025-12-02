@@ -1,16 +1,17 @@
 // ===== CONSTANTS =====
 const CONFIG = {
     TILE_SIZE: 40,
-    GRID_WIDTH: 13,
-    GRID_HEIGHT: 11,
+    GRID_WIDTH: 17,
+    GRID_HEIGHT: 15,
     PLAYER_MOVE_FRAMES: 8,
-    ENEMY_MOVE_FRAMES: 12,
+    ENEMY_MOVE_FRAMES: 18,
     VIBE_TIMER: 3000, // 3 seconds
     VIBE_RANGE: 2,
     EXPLOSION_DURATION: 500,
     MAX_VIBES: 1,
     STARTING_LIVES: 3,
-    DESTRUCTIBLE_BLOCK_PERCENTAGE: 0.10,
+    DESTRUCTIBLE_BLOCK_PERCENTAGE: 0.25,
+    DEATH_PAUSE_DURATION: 1000,
     ENEMY_COUNT: 6,
     SCORE: {
         BRICK: 10,
@@ -22,7 +23,7 @@ const CONFIG = {
 const COLORS = {
     BACKGROUND: '#0a0a0a',
     INDESTRUCTIBLE: '#2a2a2a',
-    DESTRUCTIBLE: '#8B4513',
+    DESTRUCTIBLE: '#9B59B6',
     EXPLOSION: '#790ECB',
     VIBE_TEXT: '#790ECB'
 };
@@ -58,6 +59,9 @@ let keys = {};
 let playerImage = new Image();
 let enemyImage = new Image();
 let imagesLoaded = 0;
+
+// Death pause state
+let deathPauseStart = null;
 
 // ===== INITIALIZATION =====
 function init() {
@@ -195,17 +199,22 @@ function handleKeyDown(e) {
         showMessage('');
     }
     
-    if (gameState === GAME_STATES.GAME_OVER || gameState === GAME_STATES.LEVEL_COMPLETE) {
-        if (e.key === 'Enter') {
-            gameState = GAME_STATES.PLAYING;
-            if (gameState === GAME_STATES.GAME_OVER) {
-                score = 0;
-                lives = CONFIG.STARTING_LIVES;
-            }
-            resetLevel();
-            updateUI();
-            showMessage('');
-        }
+    if (gameState === GAME_STATES.GAME_OVER && e.key === 'Enter') {
+        // Full restart from beginning
+        score = 0;
+        lives = CONFIG.STARTING_LIVES;
+        gameState = GAME_STATES.PLAYING;
+        resetLevel();
+        updateUI();
+        showMessage('');
+    }
+    
+    if (gameState === GAME_STATES.LEVEL_COMPLETE && e.key === 'Enter') {
+        // Continue to next level (keeping score and lives)
+        gameState = GAME_STATES.PLAYING;
+        resetLevel();
+        updateUI();
+        showMessage('');
     }
     
     e.preventDefault();
@@ -218,6 +227,16 @@ function handleKeyUp(e) {
 // ===== UPDATE LOGIC =====
 function update() {
     if (gameState !== GAME_STATES.PLAYING) return;
+    
+    // Check death pause
+    if (deathPauseStart !== null) {
+        if (Date.now() - deathPauseStart >= CONFIG.DEATH_PAUSE_DURATION) {
+            deathPauseStart = null;
+            showMessage('');
+            resetLevel();
+        }
+        return; // Skip update during pause
+    }
     
     frameCount++;
     
@@ -409,15 +428,20 @@ function checkCollisions() {
     }
 }
 
+function startDeathPause() {
+    deathPauseStart = Date.now();
+    showMessage('💀 OUCH! 💀');
+}
+
 function playerDie() {
-    lives--;
+    lives = Math.max(0, lives - 1);
     updateUI();
     
-    if (lives <= 0) {
+    if (lives === 0) {
         gameState = GAME_STATES.GAME_OVER;
         showMessage('GAME OVER!<br>Press Enter to restart');
     } else {
-        resetLevel();
+        startDeathPause();
     }
 }
 
@@ -450,7 +474,7 @@ function renderArena() {
                 ctx.fillRect(x * CONFIG.TILE_SIZE, y * CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
             } else if (tile === TILE_TYPES.DESTRUCTIBLE) {
                 ctx.fillStyle = COLORS.DESTRUCTIBLE;
-                ctx.fillRect(x * CONFIG.TILE_SIZE + 2, y * CONFIG.TILE_SIZE + 2, CONFIG.TILE_SIZE - 4, CONFIG.TILE_SIZE - 4);
+                ctx.fillRect(x * CONFIG.TILE_SIZE, y * CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
             }
         }
     }
