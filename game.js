@@ -127,6 +127,20 @@ function resetLevel() {
     frameCount = 0;
 }
 
+function respawnPlayer() {
+    // Only respawn player, keep arena and enemies as they are
+    player = {
+        x: 1,
+        y: 1,
+        moveTimer: 0,
+        canPlaceVibe: true
+    };
+    
+    // Clear vibes and explosions for safety
+    vibes = [];
+    explosions = [];
+}
+
 // ===== ARENA CREATION =====
 function createOriginalArena() {
     originalArena = [];
@@ -248,7 +262,7 @@ function update() {
         if (Date.now() - deathPauseStart >= CONFIG.DEATH_PAUSE_DURATION) {
             deathPauseStart = null;
             showMessage('');
-            resetLevel();
+            respawnPlayer();
         }
         return; // Skip update during pause
     }
